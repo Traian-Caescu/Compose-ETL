@@ -1,0 +1,28 @@
+<!-- action is the endpoint added to the url where this page came from -->
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>ETL selected file into selected table</title>
+</head>
+
+<body>
+  <h1>Load Data File into Table</h1>
+  <form action="/load-table" method="POST" >
+    <label for="table">Select a table:</label>
+    <select id="table" name="table">
+      <option value="trivia_small" selected>Triv Small</option>
+      <option value="trivia_large">Triv Large</option>
+      <option value="junk">Junk</option>
+      <option value="test">Test</option>
+    </select>
+    <br>
+    <label for="filename">Load from file:</label>
+    <input type="text" name="filename" id="filename" value="trivia_small.txt">
+    <br>
+    <button type="submit">Execute ETL</button>
+  </form>
+
+</body>
+
+</html>

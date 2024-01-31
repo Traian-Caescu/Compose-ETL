@@ -1,0 +1,99 @@
+# Four services: upload to simulate something like a batch ftp of csv types data, etl to extract the data, transform it
+# Into the modelled data then load it into a database. mysql-svr is a database service and caller illustrates
+# container to container communication by calling an api from one container in another
+# Ports for the apps can all be the same - e.g. 3000 as they are inside containers. I've made them different to 
+# avoid having to change then after local testing outside the container where they all have to be different.
+# I have provided 4000 series ports on the containers, again just to avoid clashes with any local containers 
+# and test applications running at the same time and hitting port conflicts. On the same VM, these all need 
+# to be different but 3000 - 3002 or many other numbers could be used. Nothing special about the 4000 range
+# mysql runs on 3306 by default so its container could also run on 3306. I've used 3307 only so I can connect to 
+# it from workbench on a host that is already running a local mysql server so is listening on 3306.
+
+services:  
+  etl:                             # Loads data from a file in a volume into a mysql database
+    image : oldgithubber/etl  # Image name to create when building or to use when creating container   
+    build: 
+      context: ./etl         # Location of dockerfile and source files - project dir
+    env_file:
+    - .env
+    container_name: etl # Optionally name the container when built
+    restart: always
+    environment: # Those not in .env
+      - MYSQL_CONTAINER_SERVICE=mysql-svr # mysql container accessed from this container
+      - MYSQL_CONTAINER_USER=${MYSQL_USER}
+      - MYSQL_CONTAINER_PASSWORD=${MYSQL_PASSWORD}
+      - MYSQL_CONTAINER_DATABASE=${MYSQL_DATABASE}
+
+    ports:
+    - ${ETL_CONTAINER_PORT}:${ETL_PORT}   # REMOVE THIS IN PROD - expose just for testing. Map the container and app ports. All app ports don't have to be different
+
+    volumes:
+      - data:/usr/src/data   # Persistant volume called data. Holds and shares data between etl and upload
+    # - ./etl:/usr/src/app   # Bind to the local file system so changes are reflected into the container
+    # - etl_node:/usr/src/app/node_modules  # Volume to node modules to mask internal modules from the bind above
+    depends_on:
+    - mongo                   # We need mysql to be ready before trying to connect to it
+                              # rely on etl restart to keep trying
+
+  mysql-svr:                       # Docker hub-based managed mysql image
+    image: mysql                   # No tag so latest will be pulled
+    container_name: mysql
+    restart: unless-stopped        # If it crashes, restart it unless it was me that stopped it
+    env_file:
+    - .env                         # All config we need for this container is in here
+    healthcheck:
+      test: curl --fail http://localhost:${MYSQL_PORT} || exit 1 # Keep trying to connect to my sql. Build etl on success
+      interval: 10s     # Wait
+      timeout: 10s      # Try for this long
+      retries: 3        # Try this many times before giving up
+    volumes:
+      - mysql-db:/var/lib/mysql  # Persist database data outside the container
+    ports:
+      - ${MYSQL_CONTAINER_PORT}:${MYSQL_PORT}   # Mapped to 4003 to enable workbench to connect if on host with local mysql running on 4003
+
+  mongo:
+    image: mongo
+    container_name: mongo
+    restart: always
+    env_file:
+    - .env               # All env vars we need for this are in .env
+    ports:
+    - ${MONGO_CONTAINER_PORT}:${MONGO_PORT}
+    volumes:
+    - mongo-db:/data/db
+
+
+  caller:                          # Just calls routes in etl to demonstrate inter-container messaging
+    image : oldgithubber/caller     
+    build: 
+      context: ./caller 
+    container_name: caller
+    env_file:
+    - .env
+    environment:
+      - ETL_CONT_SERVICE=etl
+    ports:
+      - ${CALLER_CONTAINER_PORT}:${CALLER_PORT}  
+   # volumes:
+      # - ./caller:/usr/src/app 
+      # - caller_node:/usr/src/app/node_modules 
+
+  upload:  # Web page enables upload of data into shared volume to be used by etl
+    image : oldgithubber/upload     
+    build: 
+      context: ./upload 
+    container_name: upload
+    env_file:
+    - .env
+    environment:
+      - ETL_CONT_SERVICE=etl
+    ports:
+      - ${UPLOAD_CONTAINER_PORT}:${UPLOAD_PORT} 
+    volumes:
+      - data:/usr/src/data   # Wasn't able to use an env var here so this makes it a bit less maintainable
+volumes:
+  mongo-db:
+  data:
+  mysql-db:         
+ # caller_node: # Use these to mask the local node_modules if binding local files during testing
+ # etl_node:

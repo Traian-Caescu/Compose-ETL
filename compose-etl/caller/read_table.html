@@ -1,0 +1,28 @@
+<!-- Uses the standard - maybe "old" method to post multi=part data -->
+<!-- action is the endpoint added to the url where this page came from -->
+<!-- enctype is multipart.  -->
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>Read Table</title>
+</head>
+
+<body>
+  <h1>Read data from selected table</h1>
+  <form action="/read-table" method="POST" enctype="application/x-www-form-urlencoded">
+    <label for="table">Select a table:</label>
+    <select id="table" name="table">
+      <option value="trivia_small" selected>Triv Small</option>
+      <option value="trivia_large">Triv Large</option>
+      <option value="junk">Junk</option>
+      <option value="test">Test</option>
+    </select>
+
+    <button type="submit">Read Table</button>
+  </form>
+
+</body>
+
+</html>
+

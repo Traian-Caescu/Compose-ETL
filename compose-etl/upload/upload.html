@@ -1,0 +1,23 @@
+<!-- Uses the standard - maybe "old" method to post multi=part data -->
+<!-- action is the endpoint added to the url where this page came from -->
+<!-- enctype is multipart.  -->
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>File Upload</title>
+  <style>h1 { color: red }</style>
+</head>
+
+<body>
+  <h1>Upload Data File [v2.1]</h1>
+  <form action="/upload" method="POST" enctype="multipart/form-data">
+    <input type="file" name="file" required>
+    <br><br>
+    <label for="test">Test Text: </label>
+    <input type="text" name="test" id="test" placeholder="Add some text for demo only">
+    <button type="submit">Upload</button>
+  </form>
+</body>
+
+</html>
